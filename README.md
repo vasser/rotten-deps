@@ -17,7 +17,17 @@ The primary purpose of this script is to shift left in the software development 
 
 ### Installation
 
-TBD
+Install if from github:
+
+```sh
+npm i --save-dev https://github.com/vasser/rotten-deps.git
+```
+
+Or run without installation using `npx`:
+
+```sh
+npx https://github.com/vasser/rotten-deps.git
+```
 
 ### Options
 
@@ -27,7 +37,7 @@ TBD
 Example:
 
 ```sh
-./rotten-deps --verbose --long
+npx rotten-deps --verbose --long
 ```
 
 ## Integration with CI/CD
