@@ -1,0 +1,22 @@
+{
+  "name": "rotten-deps",
+  "version": "1.0.0",
+  "description": "How rottend are your installed packages?",
+  "main": "index.js",
+  "bin": "bin/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vasser/rotten-deps.git"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "npm",
+    "outdated",
+    "dependencies"
+  ],
+  "author": "vasser",
+  "license": "MIT"
+}
