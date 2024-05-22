@@ -1,4 +1,4 @@
-# Rotten Deps Checker
+# Rotten Deps
 
 This Node.js script analyzes the dependencies listed in a `package.json` file and reports how outdated they are. It is designed to help maintainers keep their dependencies up-to-date by providing clear, actionable insights into their dependency landscape.
 
@@ -17,26 +17,7 @@ The primary purpose of this script is to shift left in the software development 
 
 ### Installation
 
-Clone the repository and navigate to the directory where the script is located.
-
-```sh
-git clone <repository_url>
-cd <repository_directory>
-```
-
-### Running the Script
-
-Make sure the script is executable:
-
-```sh
-chmod +x rotten-deps-checker.js
-```
-
-Then run the script:
-
-```sh
-./rotten-deps-checker.js
-```
+TBD
 
 ### Options
 
@@ -46,7 +27,7 @@ Then run the script:
 Example:
 
 ```sh
-./rotten-deps-checker.js --verbose --long
+./rotten-deps --verbose --long
 ```
 
 ## Integration with CI/CD
@@ -69,8 +50,8 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: "14"
-      - name: Run Rotten Deps Checker
-        run: ./rotten-deps-checker.js
+      - name: Run Rotten Deps
+        run: rotten-deps
 ```
 
 ## Outputs
