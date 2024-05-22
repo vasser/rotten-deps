@@ -1,6 +1,6 @@
 {
   "name": "rotten-deps",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "How rottend are your installed packages?",
   "main": "index.js",
   "bin": "bin/index.js",
