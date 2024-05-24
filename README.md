@@ -1,6 +1,6 @@
-# Rotten Deps
+# Rotten Dependencies (rodeps)
 
-This Node.js script analyzes the dependencies listed in a `package.json` file and reports how outdated they are. It is designed to help maintainers keep their dependencies up-to-date by providing clear, actionable insights into their dependency landscape.
+This package analyzes the dependencies listed in a `package.json` file and reports how outdated they are. It is designed to help maintainers keep their dependencies up-to-date by providing clear, actionable insights into their dependency landscape.
 
 ## Purpose
 
@@ -8,8 +8,8 @@ The primary purpose of this script is to shift left in the software development 
 
 ## Features
 
-- **Zero dependencies**: This script is implemented with no external dependencies, relying solely on Node.js built-in modules, ensuring lightweight and fast execution.
 - **Detailed reporting**: Provides a summary of all dependencies, including the percentage of outdated packages.
+- **Zero dependencies**: This script is implemented with no external dependencies, relying solely on Node.js built-in modules, ensuring lightweight and fast execution.
 - **Verbose and detailed output options**: Configure the script to output detailed lists of outdated packages if needed.
 - **CI/CD integration**: Easily integrate this script into your CI/CD pipelines to automatically check for outdated dependencies with every build.
 
@@ -17,16 +17,16 @@ The primary purpose of this script is to shift left in the software development 
 
 ### Installation
 
-Install if from github:
+Install it from npmjs.org:
 
 ```sh
-npm i --save-dev https://github.com/vasser/rotten-deps.git
+npm i --save-dev rodeps
 ```
 
 Or run without installation using `npx`:
 
 ```sh
-npx https://github.com/vasser/rotten-deps.git
+npx rodeps
 ```
 
 ### Options
@@ -37,7 +37,7 @@ npx https://github.com/vasser/rotten-deps.git
 Example:
 
 ```sh
-npx rotten-deps --verbose --long
+npx rodeps --verbose --long
 ```
 
 ## Integration with CI/CD
@@ -61,7 +61,7 @@ jobs:
         with:
           node-version: "14"
       - name: Run Rotten Deps
-        run: rotten-deps
+        run: rodeps
 ```
 
 ## Outputs

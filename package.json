@@ -1,12 +1,14 @@
 {
-  "name": "rotten-deps",
+  "name": "rodeps",
   "version": "1.0.1",
-  "description": "How rottend are your installed packages?",
+  "description": "How rotten are your installed packages?",
   "main": "index.js",
-  "bin": "bin/index.js",
+  "bin": {
+    "rotten-deps": "bin/index.js"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vasser/rotten-deps.git"
+    "url": "git+https://github.com/vasser/rotten-deps.git"
   },
   "type": "commonjs",
   "scripts": {
@@ -18,5 +20,9 @@
     "dependencies"
   ],
   "author": "vasser",
-  "license": "MIT"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vasser/rotten-deps/issues"
+  },
+  "homepage": "https://github.com/vasser/rotten-deps#readme"
 }

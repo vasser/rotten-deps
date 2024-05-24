@@ -44,5 +44,5 @@ git push --tags
 git push origin $release_branch
 
 echo "Publishing to npm"
-npm run registry-login
+npm login
 npm publish
