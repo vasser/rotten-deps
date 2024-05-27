@@ -3,19 +3,24 @@
 const assert = require("node:assert");
 const fs = require("node:fs");
 const util = require("node:util");
+const { dependenciesTypes, getNpmCommand, parseArgs } = require("./utils");
 
 const exec = util.promisify(require("node:child_process").exec);
 
-// TODO parse argv
-const isVerbose = false;
-const isLong = false;
+const TIMEOUT_MS = 60_000;
 
-const dependenciesTypes = [
-  "dependencies",
-  "devDependencies",
-  "optionalDependencies",
-  "peerDependencies",
-];
+let parsedArgs;
+try {
+  parsedArgs = parseArgs();
+} catch (error) {
+  process.exit(1);
+}
+
+const debug = (...args) => {
+  if (parsedArgs && parsedArgs.verbose === true) {
+    console.debug(...args);
+  }
+};
 
 const subresult = {
   installed: 0,
@@ -33,13 +38,9 @@ for (const t of dependenciesTypes) {
   result[t] = { ...subresult, packages: [] };
 }
 
-function debug(msg, params) {
-  if (isVerbose === true) {
-    console.debug(msg, params);
-  }
-}
-
 function pre() {
+  debug("CLI args:", parsedArgs);
+
   try {
     assert(fs.existsSync("package.json"), "pre: package.json not found");
 
@@ -51,9 +52,12 @@ function pre() {
 
 async function list() {
   try {
-    const { stdout, stderr } = await exec("npm ls --long --json", {
-      timeout: 60_000,
-    });
+    const { stdout, stderr } = await exec(
+      `${getNpmCommand()} ls --long --json`,
+      {
+        timeout: TIMEOUT_MS,
+      }
+    );
 
     if (stderr) {
       console.error("npm ls: Error: ", stderr);
@@ -100,8 +104,8 @@ async function outdated() {
   try {
     let stdout;
     try {
-      ({ stdout } = await exec("npm outdated --json --long", {
-        timeout: 60_000,
+      ({ stdout } = await exec(`${getNpmCommand()} outdated --json --long`, {
+        timeout: TIMEOUT_MS,
       }));
     } catch (e) {
       if (!e.stdout) {
@@ -144,11 +148,19 @@ async function outdated() {
 function post() {
   const { name, version = "undefined" } = require("./package.json");
 
-  const mark = parseFloat(
-    result.all.outdated === 0 || result.all.installed === 0
-      ? 0
-      : (result.all.outdated * 100) / result.all.installed
-  ).toFixed(2);
+  const mark = Number(
+    parseFloat(
+      result.all.outdated === 0 || result.all.installed === 0
+        ? 0
+        : (result.all.outdated * 100) / result.all.installed
+    ).toFixed(2)
+  );
+
+  if (parsedArgs.json === true) {
+    result.all.rottenDepsPercentage = mark;
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
 
   console.log(`Rotten deps results for ${name}@${version}`);
   console.log(
@@ -164,7 +176,7 @@ function post() {
     console.log(`\tinstalled: ${result[type].installed}`);
     console.log(`\toutdated: ${result[type].outdated}`);
 
-    if (isLong === true) {
+    if (parsedArgs.long === true) {
       console.log(
         "List of outdated:\n",
         JSON.stringify(result[type].packages, null, 2)
