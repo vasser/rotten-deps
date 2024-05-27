@@ -80,6 +80,10 @@ Rotten deps results for <project_name>@<version>
 
 If the `--long` option is used, it will also output a detailed list of outdated packages.
 
+If the `--json` option is used, it will output entire report in JSON format, including lists of outdated packages. This options excludes `--long` and might be useful in CI/CD or automated runs.
+
+Results of `--json` invoked output can be parsed programmaticaly or stored in the file for the further analysis.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request with your improvements or bug fixes.
