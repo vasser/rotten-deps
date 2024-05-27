@@ -31,8 +31,9 @@ npx rodeps
 
 ### Options
 
-- `--verbose`: Enable verbose output for debugging purposes.
 - `--long`: Output a detailed list of outdated packages.
+- `--json`: Output in JSON format to the results can be parsed.
+- `--verbose`: Enable verbose output for debugging purposes.
 
 Example:
 
