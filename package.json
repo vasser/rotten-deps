@@ -1,6 +1,6 @@
 {
   "name": "rodeps",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "How rotten are your installed packages?",
   "main": "index.js",
   "bin": {
