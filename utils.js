@@ -1,3 +1,5 @@
+const fs = require("node:fs");
+
 exports.parseArgs = () => {
   const argsMap = {
     long: false,
@@ -44,3 +46,18 @@ exports.dependenciesTypes = [
 
 exports.getNpmCommand = () =>
   process.platform === "win32" ? "npm.cmd" : "npm";
+
+exports.getPackageInfo = () => {
+  let name, version;
+  try {
+    const { name, version } = JSON.parse(fs.readFileSync("package.json"));
+
+    return { name, version };
+  } catch (_) {
+    console.error("Could not retrieve analyzed package name and version");
+    return {
+      name,
+      version,
+    };
+  }
+};

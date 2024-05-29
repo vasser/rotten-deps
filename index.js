@@ -3,7 +3,12 @@
 const assert = require("node:assert");
 const fs = require("node:fs");
 const util = require("node:util");
-const { dependenciesTypes, getNpmCommand, parseArgs } = require("./utils");
+const {
+  dependenciesTypes,
+  getNpmCommand,
+  parseArgs,
+  getPackageInfo,
+} = require("./utils");
 
 const exec = util.promisify(require("node:child_process").exec);
 
@@ -146,7 +151,7 @@ async function outdated() {
 }
 
 function post() {
-  const { name, version = "undefined" } = require("./package.json");
+  const { name, version } = getPackageInfo();
 
   const mark = Number(
     parseFloat(
