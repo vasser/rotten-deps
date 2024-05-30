@@ -4,7 +4,7 @@
   "description": "How rotten are your installed packages?",
   "main": "index.js",
   "bin": {
-    "rotten-deps": "bin/index.js"
+    "rodeps": "bin/index.js"
   },
   "repository": {
     "type": "git",

@@ -17,4 +17,4 @@ jobs:
           node-version: 20
       - run: npm ci --quiet --no-audit --no-fund
       - name: Check outdated dependencies
-        run: npx -y rodeps
+        run: npm i rodeps && ./node_modules/.bin/rodeps
