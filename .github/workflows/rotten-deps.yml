@@ -17,4 +17,4 @@ jobs:
           node-version: 20
       - run: npm ci --quiet --no-audit --no-fund
       - name: Check outdated dependencies
-        run: if [ $(npx rodeps --json | jq '.all.rottenDepsPercentage') -ge 10 ]; then exit 1; fi
+        run: if [ $(npx rodeps --json | jq '.all.rottenDepsPercentage') -ge {{ vars.RODEPS_THRESHOLD }} ]; then exit 1; fi
