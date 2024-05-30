@@ -31,8 +31,8 @@ npx rodeps
 
 ### Options
 
-- `--long`: Output a detailed list of outdated packages.
-- `--json`: Output in JSON format to the results can be parsed.
+- `--long`: Output a detailed list of outdated packages. This option will be ignored if used with `--json`.
+- `--json`: Output in JSON format to the results can be parsed. Takes precenence over `--long` if used simultaneously.
 - `--verbose`: Enable verbose output for debugging purposes.
 
 Example:
@@ -67,15 +67,20 @@ jobs:
 
 ## Outputs
 
-The script outputs a summary of the dependency status:
+The script outputs a summary of the dependency status, for example:
 
 ```
-Rotten deps results for <project_name>@<version>
-<percentage>% of installed packages (<total_installed>) are outdated (<total_outdated>)
-
-<dependency_type>:
-    installed: <number>
-    outdated: <number>
+Rotten deps results for <project-name>@<version>
+12.5% of installed packages (104) are outdated (13)
+┌──────────────────────┬───────────┬──────────┬───────────┐
+│       (index)        │ installed │ outdated │ rotten, % │
+├──────────────────────┼───────────┼──────────┼───────────┤
+│         all          │    104    │    13    │   12.5    │
+│     dependencies     │    95     │    6     │   6.32    │
+│   devDependencies    │     9     │    7     │   77.78   │
+│ optionalDependencies │     0     │    0     │     0     │
+│   peerDependencies   │     0     │    0     │     0     │
+└──────────────────────┴───────────┴──────────┴───────────┘
 ```
 
 If the `--long` option is used, it will also output a detailed list of outdated packages.

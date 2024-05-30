@@ -31,8 +31,18 @@ then
     exit 0
 fi
 
+git fetch --tags
+
+latest_tag=$(git describe --tags --abbrev=0)
+
+echo "Generating description for new tag"
+
+commit_messages=$(git log ${latest_tag}..HEAD --pretty=format:"%h - %s")
+tag_description="Changes since ${latest_tag}:
+${commit_messages}"
+
 echo "Adding a new version and a tag"
-version=$(npm version $incremented_version -m "release $release_date")
+version=$(npm version $incremented_version -m $tag_description)
 
 echo "A new version created: $version. Running npm install..."
 npm i --quiet --no-audit
