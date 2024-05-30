@@ -8,6 +8,7 @@ const {
   getNpmCommand,
   parseArgs,
   getPackageInfo,
+  countMark,
 } = require("./utils");
 
 const exec = util.promisify(require("node:child_process").exec);
@@ -27,6 +28,46 @@ const debug = (...args) => {
   }
 };
 
+const formatOutput = () => {
+  const { name, version } = getPackageInfo();
+
+  console.log(`Rotten deps results for ${name}@${version}`);
+  console.log(
+    `${countMark(result.all)}% of installed packages (${
+      result.all.installed
+    }) are outdated (${result.all.outdated})`
+  );
+
+  const output = Object.keys(result).reduce(
+    (acc, key) => {
+      const { installed, outdated, packages } = result[key];
+      acc.score[key] = {
+        installed,
+        outdated,
+        "rotten, %": countMark(result[key]),
+      };
+      acc.packages[key] = packages;
+      return acc;
+    },
+    { score: {}, packages: {} }
+  );
+
+  console.table(output.score);
+
+  if (parsedArgs.long === true) {
+    for (const key in output.packages) {
+      const list = output.packages[key];
+
+      if (!list || Object.values(list).length === 0) {
+        continue;
+      }
+
+      console.log(`\nList of outdated ${key}`);
+      console.table(list);
+    }
+  }
+};
+
 const subresult = {
   installed: 0,
   outdated: 0,
@@ -40,7 +81,7 @@ const result = {
 };
 
 for (const t of dependenciesTypes) {
-  result[t] = { ...subresult, packages: [] };
+  result[t] = { ...subresult, packages: {} };
 }
 
 function pre() {
@@ -75,27 +116,12 @@ async function list() {
       json = JSON.parse(stdout);
     } catch {}
 
-    for (const k in json.dependencies) {
-      const d = json.dependencies[k];
+    for (const t of dependenciesTypes) {
+      const installed = Object.hasOwn(json, t) ? json[t] : {};
+      const len = Object.keys(installed).length;
 
-      result.all.installed++;
-
-      if (d.dev === true) {
-        result.devDependencies.installed++;
-        continue;
-      }
-
-      if (d.optional === true) {
-        result.optionalDependencies.installed++;
-        continue;
-      }
-
-      if (d.peer === true) {
-        result.peerDependencies.installed++;
-        continue;
-      }
-
-      result.dependencies.installed++;
+      result.all.installed += len;
+      result[t].installed += len;
     }
 
     debug("ls: OK");
@@ -126,21 +152,20 @@ async function outdated() {
       json = JSON.parse(stdout);
     } catch {}
 
-    for (const k in json) {
-      const d = json[k];
+    for (const key in json) {
+      const d = json[key];
 
       result.all.outdated++;
 
       if (!result[d.type]) {
-        result[d.type] = { ...subresult, packages: [] };
+        result[d.type] = { ...subresult, packages: {} };
       }
 
       result[d.type].outdated++;
-      result[d.type].packages.push({
-        package: k,
+      result[d.type].packages[key] = {
         current: d.current,
         wanted: d.wanted,
-      });
+      };
     }
 
     debug("outdated: OK");
@@ -151,43 +176,13 @@ async function outdated() {
 }
 
 function post() {
-  const { name, version } = getPackageInfo();
-
-  const mark = Number(
-    parseFloat(
-      result.all.outdated === 0 || result.all.installed === 0
-        ? 0
-        : (result.all.outdated * 100) / result.all.installed
-    ).toFixed(2)
-  );
-
   if (parsedArgs.json === true) {
-    result.all.rottenDepsPercentage = mark;
+    result.all.rottenDepsPercentage = countMark(result.all);
     console.log(JSON.stringify(result, null, 2));
     return;
   }
 
-  console.log(`Rotten deps results for ${name}@${version}`);
-  console.log(
-    `${mark}% of installed packages (${result.all.installed}) are outdated (${result.all.outdated})`
-  );
-
-  for (const type of dependenciesTypes) {
-    if (result[type].installed === 0) {
-      continue;
-    }
-
-    console.log(`\n${type}:`);
-    console.log(`\tinstalled: ${result[type].installed}`);
-    console.log(`\toutdated: ${result[type].outdated}`);
-
-    if (parsedArgs.long === true) {
-      console.log(
-        "List of outdated:\n",
-        JSON.stringify(result[type].packages, null, 2)
-      );
-    }
-  }
+  formatOutput();
 
   debug("post: OK");
 }
