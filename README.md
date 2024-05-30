@@ -1,3 +1,5 @@
+[![Rodeps](https://github.com/vasser/rotten-deps/actions/workflows/rotten-deps.yml/badge.svg)](https://github.com/vasser/rotten-deps/actions/workflows/rotten-deps.yml) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/rodeps)
+
 # Rotten Dependencies (rodeps)
 
 This package analyzes the dependencies listed in a `package.json` file and reports how outdated they are. It is designed to help maintainers keep their dependencies up-to-date by providing clear, actionable insights into their dependency landscape.
@@ -43,26 +45,47 @@ npx rodeps --verbose --long
 
 ## Integration with CI/CD
 
-To integrate this script into your CI/CD pipeline, add the following step to your pipeline configuration:
+To integrate this package into your CI/CD pipeline, you can use `--json` option and parse the output using `jq` (or any other tool to manipilate JSON).
 
-For example, in a GitHub Actions workflow:
+### Parsing output
+
+Example of parsing JSON output that returns percentage of all outdated packages in analyzed repo:
+
+```sh
+npx rodeps --json | jq '.all.rottenDepsPercentage' # returns integer or float, e.g.: 25.89
+```
+
+Example of parsing table output using `awk`:
+
+```sh
+npx rodeps | awk 'NR==2 { print $1 }' # returns string, e.g.: 25.89%
+```
+
+### Github Actions
+
+GitHub Actions workflow example. This workflow installs dependencies, analyzes repo and fails run if percentage of outdated packages greater or equal of variable `RODEPS_THRESHOLD`:
 
 ```yaml
-name: CI
+name: Rodeps
 
-on: [push, pull_request]
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
-  check-dependencies:
+  rotten-deps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: "14"
-      - name: Run Rotten Deps
-        run: rodeps
+          node-version: 20
+      - run: npm ci --quiet --no-audit --no-fund
+      - name: Check outdated dependencies
+        run: if [ $(npx rodeps --json | jq '.all.rottenDepsPercentage') -ge {{ vars.RODEPS_THRESHOLD }} ]; then exit 1; fi
 ```
 
 ## Outputs
