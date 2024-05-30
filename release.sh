@@ -1,5 +1,7 @@
 # /bin/bash
 
+set -eo pipefail
+
 if [ "$1" = "--help" ]; then
     echo "Release new version of the cookies-and-emails package\n"
     echo "Usage: [VERSION] release.sh [options]\n"
@@ -18,41 +20,43 @@ release_date=$(date)
 current_branch=$(git branch --show-current)
 current_status=$(git status -s)
 incremented_version=${VERSION:='patch'}
+latest_tag=$(git describe --tags --abbrev=0)
 
 if [ $current_branch != $release_branch ]
 then
-    echo "Cannot release on current branch: $current_branch.\nDo 'git switch $release_branch' and run the script again"
+    echo "Cannot release on current branch: $current_branch."
+    echo "Do 'git switch $release_branch' and run the script again."
     exit 0
 fi
 
 if [ -n "$current_status" ]
 then
-    echo "Git working directory not clean.\nCommit or stash your changes first"
+    echo "Git working directory not clean."
+    echo "Commit or stash your changes first."
     exit 0
 fi
 
 git fetch --tags
 
-latest_tag=$(git describe --tags --abbrev=0)
-
-echo "Generating description for new tag"
-
+echo "Generating description for new tag..."
 commit_messages=$(git log ${latest_tag}..HEAD --pretty=format:"%h - %s")
-tag_description="Changes since ${latest_tag}:
+tag_description="Changes since ${latest_tag}: 
 ${commit_messages}"
 
-echo "Adding a new version and a tag"
-version=$(npm version $incremented_version -m $tag_description)
+echo "Adding a new version and a tag..."
+version=$(npm version $incremented_version -m "$tag_description")
 
 echo "A new version created: $version. Running npm install..."
 npm i --quiet --no-audit
 
-echo "Releasing changes to git"
+echo "Releasing changes to git..."
 git add package.json package-lock.json
-git commit -m -q "release $version"
+git commit -q -m "release $version"
 git push --tags
 git push origin $release_branch
 
-echo "Publishing to npm"
+echo "Publishing to npm..."
 npm login
 npm publish
+
+echo "Done"
