@@ -1,5 +1,24 @@
 [![Rodeps](https://github.com/vasser/rotten-deps/actions/workflows/rotten-deps.yml/badge.svg)](https://github.com/vasser/rotten-deps/actions/workflows/rotten-deps.yml) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/rodeps)
 
+<!-- TOC -->
+
+- [Rotten Dependencies rodeps](#rotten-dependencies-rodeps)
+  - [Purpose](#purpose)
+  - [Features](#features)
+  - [Usage](#usage)
+    - [Installation](#installation)
+    - [Options](#options)
+  - [Integration with CI/CD](#integration-with-cicd)
+    - [Parsing output](#parsing-output)
+    - [Github Actions](#github-actions)
+    - [CircleCI](#circleci)
+    - [Using rodeps in NPM postinstall hook](#using-rodeps-in-npm-postinstall-hook)
+  - [Outputs](#outputs)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+<!-- /TOC -->
+
 # Rotten Dependencies (rodeps)
 
 This package analyzes the dependencies listed in a `package.json` file and reports how outdated they are. It is designed to help maintainers keep their dependencies up-to-date by providing clear, actionable insights into their dependency landscape.
@@ -43,7 +62,7 @@ Example:
 npx rodeps --verbose --long
 ```
 
-## Integration with CI/CD
+## CI integrations and automation
 
 To integrate this package into your CI/CD pipeline, you can use `--json` option and parse the output using `jq` (or any other tool to manipilate JSON).
 
@@ -85,8 +104,50 @@ jobs:
           node-version: 20
       - run: npm ci --quiet --no-audit --no-fund
       - name: Check outdated dependencies
-        run: if [ $(npx rodeps --json | jq '.all.rottenDepsPercentage') -ge {{ vars.RODEPS_THRESHOLD }} ]; then exit 1; fi
+        run: |
+          SCORE=$(npx rodeps --json | jq '.all.rottenDepsPercentage')
+          if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threashold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
 ```
+
+### CircleCI
+
+CircleCI job example. This workflow installs dependencies, analyzes repo and fails run if percentage of outdated packages greater or equal of variable `RODEPS_THRESHOLD`:
+
+```yaml
+version: 2.1
+
+jobs:
+  rotten-deps:
+    docker:
+      - image: cimg/node:17.2.0
+    steps:
+      - checkout
+      - npm ci
+      - run:
+          name: Check outdated dependencies
+          command: |
+            RODEPS_THRESHOLD=50
+            SCORE=$(npx rodeps --json | jq '.all.rottenDepsPercentage')
+            if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threashold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
+
+workflows:
+  my-workflow:
+    jobs:
+      - rotten-deps
+```
+
+### Using rodeps in NPM postinstall hook
+
+It is possible to run `rodeps` on every install command in the project. In that case after `npm install` or `npm ci` command will appear result of outdated dependencies analysis. This can be enabled by adding this script to the `package.json` file:
+
+```json
+"scripts": {
+  ...
+  "postinstall": "if [ -z $CI ]; then npx -y rodeps; fi"
+}
+```
+
+Note `if [ -z $CI ];` - checks whether hook is not executed in non-continious integration environment. This is added to reduce the time of install command and eliminate excessive output.
 
 ## Outputs
 
