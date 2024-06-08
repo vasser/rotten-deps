@@ -52,8 +52,8 @@ npm i --quiet --no-audit
 echo "Releasing changes to git..."
 git add package.json package-lock.json
 git commit -q -m "release $version"
-git push --tags
 git push origin $release_branch
+git push --tags
 
 echo "Publishing to npm..."
 npm login
