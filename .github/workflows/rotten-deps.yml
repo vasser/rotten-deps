@@ -18,5 +18,5 @@ jobs:
       - run: npm ci --quiet --no-audit --no-fund
       - name: Check outdated dependencies
         run: |
-          SCORE=$(npx rodeps --json | jq '.all.rottenDepsPercentage')
+          SCORE=$(npx -y rodeps --json | jq '.all.rottenDepsPercentage')
           if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threashold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi

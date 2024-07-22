@@ -73,13 +73,13 @@ To integrate this package into your CI/CD pipeline, you can use `--json` option 
 Example of parsing JSON output that returns a percentage of all outdated packages in the analyzed repo:
 
 ```sh
-npx rodeps --json | jq '.all.rottenDepsPercentage' # returns integer or float, e.g.: 25.89
+npx -y rodeps --json | jq '.all.rottenDepsPercentage' # returns integer or float, e.g.: 25.89
 ```
 
 Example of parsing table output using `awk`:
 
 ```sh
-npx rodeps | awk -F'[()]*' 'NR==3 { print $2 }' # returns string, percentage of all outdated deps from line 3, e.g.: 25.89%
+npx -y rodeps | awk -F'[()]*' 'NR==3 { print $2 }' # returns string, percentage of all outdated deps from line 3, e.g.: 25.89%
 ```
 
 ### Github Actions
@@ -107,7 +107,7 @@ jobs:
       - run: npm ci --quiet --no-audit --no-fund
       - name: Check outdated dependencies
         run: |
-          SCORE=$(npx rodeps --json | jq '.all.rottenDepsPercentage')
+          SCORE=$( -y rodeps --json | jq '.all.rottenDepsPercentage')
           if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threshold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
 ```
 
@@ -129,7 +129,7 @@ jobs:
           name: Check outdated dependencies
           command: |
             RODEPS_THRESHOLD=50
-            SCORE=$(npx rodeps --json | jq '.all.rottenDepsPercentage')
+            SCORE=$(npx -y rodeps --json | jq '.all.rottenDepsPercentage')
             if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threshold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
 
 workflows:
