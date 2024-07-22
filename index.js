@@ -31,20 +31,47 @@ const debug = (...args) => {
 const formatOutput = () => {
   const { name, version } = getPackageInfo();
 
-  console.log(`Rotten deps results for ${name}@${version}`);
+  console.log(`Rotten deps results for ${name}@${version}.`);
+  console.log(`Dependencies analyzed: ${result.all.installed}.`);
   console.log(
-    `${countMark(result.all)}% of installed packages (${
-      result.all.installed
-    }) are outdated (${result.all.outdated})`
+    `${result.all.outdated} (${countMark(
+      result.all.installed,
+      result.all.outdated
+    )}%) of installed packages are outdated.`
+  );
+
+  console.log(
+    `${result.all.outdatedWanted} (${countMark(
+      result.all.installed,
+      result.all.outdatedWanted
+    )}%) of installed packages have outdated wanted versions.`
+  );
+
+  console.log(
+    `${result.all.outdatedLatest} (${countMark(
+      result.all.installed,
+      result.all.outdatedLatest
+    )}%) of installed packages have outdated latest versions.`
   );
 
   const output = Object.keys(result).reduce(
     (acc, key) => {
-      const { installed, outdated, packages } = result[key];
+      const { installed, outdatedWanted, outdatedLatest, outdated, packages } =
+        result[key];
       acc.score[key] = {
         installed,
+        "outdated wanted": outdatedWanted,
+        "rotten wanted, %": countMark(
+          result[key].installed,
+          result[key].outdatedWanted
+        ),
+        "outdated latest": outdatedLatest,
+        "rotten latest, %": countMark(
+          result[key].installed,
+          result[key].outdatedLatest
+        ),
         outdated,
-        "rotten, %": countMark(result[key]),
+        "rotten, %": countMark(result[key].installed, result[key].outdated),
       };
       acc.packages[key] = packages;
       return acc;
@@ -70,14 +97,13 @@ const formatOutput = () => {
 
 const subresult = {
   installed: 0,
+  outdatedWanted: 0,
+  outdatedLatest: 0,
   outdated: 0,
 };
 
 const result = {
-  all: {
-    installed: 0,
-    outdated: 0,
-  },
+  all: { ...subresult },
 };
 
 for (const t of dependenciesTypes) {
@@ -161,10 +187,21 @@ async function outdated() {
         result[d.type] = { ...subresult, packages: {} };
       }
 
+      if (d.current !== d.wanted) {
+        result.all.outdatedWanted++;
+        result[d.type].outdatedWanted++;
+      }
+
+      if (d.wanted !== d.latest) {
+        result.all.outdatedLatest++;
+        result[d.type].outdatedLatest++;
+      }
+
       result[d.type].outdated++;
       result[d.type].packages[key] = {
         current: d.current,
         wanted: d.wanted,
+        latest: d.latest,
       };
     }
 
@@ -177,7 +214,18 @@ async function outdated() {
 
 function post() {
   if (parsedArgs.json === true) {
-    result.all.rottenDepsPercentage = countMark(result.all);
+    result.all.rottenDepsPercentage = countMark(
+      result.all.installed,
+      result.all.outdated
+    );
+    result.all.rottenWantedDepsPercentage = countMark(
+      result.all.installed,
+      result.all.outdatedWanted
+    );
+    result.all.rottenLatestDepsPercentage = countMark(
+      result.all.installed,
+      result.all.outdatedLatest
+    );
     console.log(JSON.stringify(result, null, 2));
     return;
   }

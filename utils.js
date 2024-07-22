@@ -62,12 +62,10 @@ exports.getPackageInfo = () => {
   }
 };
 
-exports.countMark = (result = { installed: 0, outdated: 0 }) => {
+exports.countMark = (installed = 0, outdated = 0) => {
   return Number(
     parseFloat(
-      result.outdated === 0 || result.installed === 0
-        ? 0
-        : (result.outdated * 100) / result.installed
+      outdated === 0 || installed === 0 ? 0 : (outdated * 100) / installed
     ).toFixed(2)
   );
 };

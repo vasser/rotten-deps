@@ -1,5 +1,9 @@
 [![Rodeps](https://github.com/vasser/rotten-deps/actions/workflows/rotten-deps.yml/badge.svg)](https://github.com/vasser/rotten-deps/actions/workflows/rotten-deps.yml) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/rodeps)
 
+# Rotten Dependencies (rodeps)
+
+Rotten Dependencies package analyzes the dependencies tree in the `package.json` file and reports how outdated they are. It is designed to help maintainers keep their dependencies up-to-date by providing clear, actionable insights into their dependency landscape.
+
 <!-- TOC -->
 
 - [Rotten Dependencies rodeps](#rotten-dependencies-rodeps)
@@ -8,20 +12,18 @@
   - [Usage](#usage)
     - [Installation](#installation)
     - [Options](#options)
-  - [Integration with CI/CD](#integration-with-cicd)
+  - [CI integrations and automation](#ci-integrations-and-automation)
     - [Parsing output](#parsing-output)
     - [Github Actions](#github-actions)
     - [CircleCI](#circleci)
     - [Using rodeps in NPM postinstall hook](#using-rodeps-in-npm-postinstall-hook)
   - [Outputs](#outputs)
+    - [Default output](#default-output)
+    - [JSON output](#json-output)
   - [Contributing](#contributing)
   - [License](#license)
 
 <!-- /TOC -->
-
-# Rotten Dependencies (rodeps)
-
-This package analyzes the dependencies listed in a `package.json` file and reports how outdated they are. It is designed to help maintainers keep their dependencies up-to-date by providing clear, actionable insights into their dependency landscape.
 
 ## Purpose
 
@@ -53,7 +55,7 @@ npx rodeps
 ### Options
 
 - `--long`: Output a detailed list of outdated packages. This option will be ignored if used with `--json`.
-- `--json`: Output in JSON format to the results can be parsed. Takes precenence over `--long` if used simultaneously.
+- `--json`: Output in JSON format to the results can be parsed. It takes precedence over `--long` if used simultaneously.
 - `--verbose`: Enable verbose output for debugging purposes.
 
 Example:
@@ -64,11 +66,11 @@ npx rodeps --verbose --long
 
 ## CI integrations and automation
 
-To integrate this package into your CI/CD pipeline, you can use `--json` option and parse the output using `jq` (or any other tool to manipilate JSON).
+To integrate this package into your CI/CD pipeline, you can use `--json` option and parse the output using `jq` (or any other tool to work with JSON).
 
 ### Parsing output
 
-Example of parsing JSON output that returns percentage of all outdated packages in analyzed repo:
+Example of parsing JSON output that returns a percentage of all outdated packages in the analyzed repo:
 
 ```sh
 npx rodeps --json | jq '.all.rottenDepsPercentage' # returns integer or float, e.g.: 25.89
@@ -77,12 +79,12 @@ npx rodeps --json | jq '.all.rottenDepsPercentage' # returns integer or float, e
 Example of parsing table output using `awk`:
 
 ```sh
-npx rodeps | awk 'NR==2 { print $1 }' # returns string, e.g.: 25.89%
+npx rodeps | awk -F'[()]*' 'NR==3 { print $2 }' # returns string, percentage of all outdated deps from line 3, e.g.: 25.89%
 ```
 
 ### Github Actions
 
-GitHub Actions workflow example. This workflow installs dependencies, analyzes repo and fails run if percentage of outdated packages greater or equal of variable `RODEPS_THRESHOLD`:
+GitHub Actions workflow example. This workflow installs dependencies, analyzes the repo, and fails run if the percentage of outdated packages is greater or equal to variable `RODEPS_THRESHOLD`:
 
 ```yaml
 name: Rodeps
@@ -106,12 +108,12 @@ jobs:
       - name: Check outdated dependencies
         run: |
           SCORE=$(npx rodeps --json | jq '.all.rottenDepsPercentage')
-          if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threashold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
+          if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threshold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
 ```
 
 ### CircleCI
 
-CircleCI job example. This workflow installs dependencies, analyzes repo and fails run if percentage of outdated packages greater or equal of variable `RODEPS_THRESHOLD`:
+CircleCI job example. This workflow installs dependencies, analyzes the repo, and fails run if the percentage of outdated packages is greater or equal to the variable `RODEPS_THRESHOLD`:
 
 ```yaml
 version: 2.1
@@ -128,7 +130,7 @@ jobs:
           command: |
             RODEPS_THRESHOLD=50
             SCORE=$(npx rodeps --json | jq '.all.rottenDepsPercentage')
-            if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threashold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
+            if [ "$(echo "$SCORE <= $RODEPS_THRESHOLD" | bc)" -le 0 ]; then echo "Outdated dependencies $SCORE breach threshold $RODEPS_THRESHOLD"; exit 1; else echo "Outdated dependencies score $SCORE is ok"; fi
 
 workflows:
   my-workflow:
@@ -138,7 +140,7 @@ workflows:
 
 ### Using rodeps in NPM postinstall hook
 
-It is possible to run `rodeps` on every install command in the project. In that case after `npm install` or `npm ci` command will appear result of outdated dependencies analysis. This can be enabled by adding this script to the `package.json` file:
+It is possible to run `rodeps` on every install command in the project. In that case after `npm install` or `npm ci` command will print the result of outdated dependencies analysis. This can be enabled by adding this script to the `package.json` file:
 
 ```json
 "scripts": {
@@ -147,31 +149,131 @@ It is possible to run `rodeps` on every install command in the project. In that 
 }
 ```
 
-Note `if [ -z $CI ];` - checks whether hook is not executed in non-continious integration environment. This is added to reduce the time of install command and eliminate excessive output.
+Note `if [ -z $CI ];` - checks whether the hook is not executed in a non-continuous integration environment. This is added to reduce the time of install command and eliminate excessive output.
 
 ## Outputs
+
+### Default output
 
 The script outputs a summary of the dependency status, for example:
 
 ```
 Rotten deps results for <project-name>@<version>
-12.5% of installed packages (104) are outdated (13)
-┌──────────────────────┬───────────┬──────────┬───────────┐
-│       (index)        │ installed │ outdated │ rotten, % │
-├──────────────────────┼───────────┼──────────┼───────────┤
-│         all          │    104    │    13    │   12.5    │
-│     dependencies     │    95     │    6     │   6.32    │
-│   devDependencies    │     9     │    7     │   77.78   │
-│ optionalDependencies │     0     │    0     │     0     │
-│   peerDependencies   │     0     │    0     │     0     │
-└──────────────────────┴───────────┴──────────┴───────────┘
+Dependencies analyzed: 27.
+9 (33.33%) of installed packages are outdated.
+5 (18.52%) of installed packages have outdated wanted versions.
+4 (14.81%) of installed packages have outdated latest versions.
+┌──────────────────────┬───────────┬─────────────────┬──────────────────┬─────────────────┬──────────────────┬──────────┬───────────┐
+│       (index)        │ installed │ outdated wanted │ rotten wanted, % │ outdated latest │ rotten latest, % │ outdated │ rotten, % │
+├──────────────────────┼───────────┼─────────────────┼──────────────────┼─────────────────┼──────────────────┼──────────┼───────────┤
+│         all          │    27     │        5        │      18.52       │        4        │      14.81       │    9     │   33.33   │
+│     dependencies     │    18     │        2        │      11.11       │        1        │       5.56       │    3     │   16.67   │
+│   devDependencies    │     9     │        3        │      33.33       │        3        │      33.33       │    6     │   66.67   │
+│ optionalDependencies │     0     │        0        │        0         │        0        │        0         │    0     │     0     │
+│   peerDependencies   │     0     │        0        │        0         │        0        │        0         │    0     │     0     │
+└──────────────────────┴───────────┴─────────────────┴──────────────────┴─────────────────┴──────────────────┴──────────┴───────────┘
 ```
 
-If the `--long` option is used, it will also output a detailed list of outdated packages.
+Where:
 
-If the `--json` option is used, it will output entire report in JSON format, including lists of outdated packages. This options excludes `--long` and might be useful in CI/CD or automated runs.
+- `installed` - number of installed dependencies in the dependency tree (all) or specific group (dev, optional, etc).
+- `outdated wanted` - number of outdated dependencies compared to the wanted version, specified in package.json file. In case you have specified [which update types your package can accept from dependencies](https://docs.npmjs.com/about-semantic-versioning#using-semantic-versioning-to-specify-update-types-your-package-can-accept): patch (~), minor (^) or major (\*), the current version can be behind the wanted and require an update.
+- `rotten wanted` - the percentage of rotten (outdated) packages that have the current version older than wanted.
+- `outdated latest` - number of outdated dependencies compared to the latest version.
+- `rotten latest` percentage of all rotten (outdated) packages that have the current version older than the latest. This metric is stricter than `rotten wanted` since the `wanted` version may be fixed on the patch or minor level that will never allow updating dependency to the latest.
+- `outdated`
+- `rotten` - percentage of all rotten (outdated) packages.
 
-Results of `--json` invoked output can be parsed programmaticaly or stored in the file for the further analysis.
+If the `--long` option is used, it will also send to the output a detailed list of outdated packages. In that case, the default output will be extended with the following (for example):
+
+```
+List of outdated dependencies
+┌──────────────────┬──────────┬──────────┬──────────┐
+│     (index)      │ current  │  wanted  │  latest  │
+├──────────────────┼──────────┼──────────┼──────────┤
+│ react-router-dom │ '6.23.1' │ '6.25.1' │ '6.25.1' │
+│       sass       │ '1.77.5' │ '1.77.8' │ '1.77.8' │
+│    web-vitals    │ '2.1.4'  │ '2.1.4'  │ '4.2.2'  │
+└──────────────────┴──────────┴──────────┴──────────┘
+
+List of outdated devDependencies
+┌─────────────────────────────┬──────────┬──────────┬──────────┐
+│           (index)           │ current  │  wanted  │  latest  │
+├─────────────────────────────┼──────────┼──────────┼──────────┤
+│   @testing-library/react    │ '13.4.0' │ '13.4.0' │ '16.0.0' │
+│ @testing-library/user-event │ '13.5.0' │ '13.5.0' │ '14.5.2' │
+└─────────────────────────────┴──────────┴──────────┴──────────┘
+```
+
+There can be different tables for each group of dependencies if such a group has outdated packages:
+
+- `dependencies`
+- `devDependencies`
+- `optionalDependencies`
+- `peerDependencies`
+
+### JSON output
+
+If the `--json` option is used, it will output the entire report in JSON format, including lists of outdated packages. This option excludes `--long` and might be useful in CI/CD or automated runs.
+
+Results of `--json` invoked output can be parsed programmatically or stored in the file for further analysis.
+
+Example of JSON output:
+
+```json
+{
+  "all": {
+    "installed": 27,
+    "outdatedWanted": 5,
+    "outdatedLatest": 4,
+    "outdated": 9,
+    "rottenDepsPercentage": 33.33,
+    "rottenWantedDepsPercentage": 18.52,
+    "rottenLatestDepsPercentage": 14.81
+ },
+  "dependencies": {
+    "installed": 18,
+    "outdatedWanted": 2,
+    "outdatedLatest": 1,
+    "outdated": 3,
+    "packages": {
+      "react-router-dom": {
+        "current": "6.23.1",
+        "wanted": "6.25.1",
+        "latest": "6.25.1"
+ },
+      ...
+ }
+ },
+  "devDependencies": {
+    "installed": 9,
+    "outdatedWanted": 3,
+    "outdatedLatest": 3,
+    "outdated": 6,
+    "packages": {
+      "@testing-library/react": {
+        "current": "13.4.0",
+        "wanted": "13.4.0",
+        "latest": "16.0.0"
+ },
+      ...
+ },
+  "optionalDependencies": {
+    "installed": 0,
+    "outdatedWanted": 0,
+    "outdatedLatest": 0,
+    "outdated": 0,
+    "packages": {}
+ },
+  "peerDependencies": {
+    "installed": 0,
+    "outdatedWanted": 0,
+    "outdatedLatest": 0,
+    "outdated": 0,
+    "packages": {}
+ }
+}
+```
 
 ## Contributing
 
