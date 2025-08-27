@@ -63,11 +63,9 @@ class Rodeps {
     );
 
     return {
-      all: {
-        rottenDepsPercentage,
-        rottenWantedDepsPercentage,
-        rottenLatestDepsPercentage,
-      },
+      rottenDepsPercentage,
+      rottenWantedDepsPercentage,
+      rottenLatestDepsPercentage,
     };
   };
 
@@ -234,7 +232,10 @@ class Rodeps {
     if (this._args.json === true) {
       const result = {
         ...this._result,
-        summary: this._getResultsSummary(),
+        all: {
+          ...this._result.all,
+          ...this._getResultsSummary(),
+        },
       };
       console.log(JSON.stringify(result, null, 2));
     } else {

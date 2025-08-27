@@ -246,17 +246,22 @@ describe("Rodeps class - methods", () => {
 
     // Collect JSON output argument (last console.log call should be JSON blob)
     const calls = logSpy.mock.calls.map((c) => c.arguments[0]);
-    const jsonStr = calls.find(
-      (c) => typeof c === "string" && c.includes("summary")
-    );
+    const jsonStr = calls.find((c) => typeof c === "string");
     assert(jsonStr, "Expected JSON output with summary");
     const output = JSON.parse(jsonStr);
 
-    assert.deepStrictEqual(output.summary.all, {
-      rottenDepsPercentage: 50, // 3 of 6
-      rottenWantedDepsPercentage: 33.33, // 2 of 6
-      rottenLatestDepsPercentage: 33.33, // 2 of 6
-    });
+    assert.equal(
+      output.all.rottenDepsPercentage,
+      50 // 3 of 6
+    );
+    assert.equal(
+      output.all.rottenWantedDepsPercentage,
+      33.33 // 2 of 6
+    );
+    assert.equal(
+      output.all.rottenLatestDepsPercentage,
+      33.33 // 2 of 6
+    );
 
     logSpy.mock.restore();
   });
@@ -431,16 +436,15 @@ describe("Rodeps class - no outdated scenario", () => {
     rodeps.post();
     const jsonStr = logSpy.mock.calls
       .map((c) => c.arguments[0])
-      .find((s) => typeof s === "string" && s.includes("summary"));
+      .find((s) => typeof s === "string");
     const parsed = JSON.parse(jsonStr);
     assert.strictEqual(parsed.all.outdated, 0);
     assert.strictEqual(parsed.all.outdatedWanted, 0);
     assert.strictEqual(parsed.all.outdatedLatest, 0);
-    assert.deepStrictEqual(parsed.summary.all, {
-      rottenDepsPercentage: 0,
-      rottenWantedDepsPercentage: 0,
-      rottenLatestDepsPercentage: 0,
-    });
+    assert.strictEqual(parsed.all.rottenDepsPercentage, 0);
+    assert.strictEqual(parsed.all.rottenWantedDepsPercentage, 0);
+    assert.strictEqual(parsed.all.rottenLatestDepsPercentage, 0);
+
     logSpy.mock.restore();
   });
 });
