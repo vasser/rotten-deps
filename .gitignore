@@ -133,3 +133,4 @@ dist
 # Misc
 TODO.md
 .dccache
+.vscode

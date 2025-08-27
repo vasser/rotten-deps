@@ -3,7 +3,7 @@
 set -eo pipefail
 
 if [ "$1" = "--help" ]; then
-    echo "Release new version of the cookies-and-emails package\n"
+    echo "Release new version of the rodeps package\n"
     echo "Usage: [VERSION] release.sh [options]\n"
     echo "Options:"
     echo "\t--help\t display help text"
