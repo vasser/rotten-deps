@@ -4,86 +4,141 @@ const assert = require("node:assert");
 const fs = require("node:fs");
 const util = require("node:util");
 const {
-  dependenciesTypes,
-  getNpmCommand,
-  parseArgs,
-  getPackageInfo,
   countMark,
+  getNpmCommand,
+  getPackageInfo,
+  parseArgs,
+  safeConvertStdoutToJson,
 } = require("./utils");
 
 const exec = util.promisify(require("node:child_process").exec);
 
 const TIMEOUT_MS = 60_000;
 
-let parsedArgs;
-try {
-  parsedArgs = parseArgs();
-} catch (error) {
-  process.exit(1);
-}
+class Rodeps {
+  _dependenciesTypes = Object.freeze([
+    "all",
+    "dependencies",
+    "devDependencies",
+    "optionalDependencies",
+    "peerDependencies",
+  ]);
 
-const debug = (...args) => {
-  if (parsedArgs && parsedArgs.verbose === true) {
-    console.debug(...args);
-  }
-};
+  _args = {};
 
-const formatOutput = () => {
-  const { name, version } = getPackageInfo();
+  _result = {};
 
-  console.log(`Rotten deps results for ${name}@${version}.`);
-  console.log(`Dependencies analyzed: ${result.all.installed}.`);
-  console.log(
-    `${result.all.outdated} (${countMark(
-      result.all.installed,
-      result.all.outdated
-    )}%) of installed packages are outdated.`
-  );
+  constructor() {
+    this._args = parseArgs();
 
-  console.log(
-    `${result.all.outdatedWanted} (${countMark(
-      result.all.installed,
-      result.all.outdatedWanted
-    )}%) of installed packages have outdated wanted versions.`
-  );
-
-  console.log(
-    `${result.all.outdatedLatest} (${countMark(
-      result.all.installed,
-      result.all.outdatedLatest
-    )}%) of installed packages have outdated latest versions.`
-  );
-
-  const output = Object.keys(result).reduce(
-    (acc, key) => {
-      const { installed, outdatedWanted, outdatedLatest, outdated, packages } =
-        result[key];
-      acc.score[key] = {
-        installed,
-        "outdated wanted": outdatedWanted,
-        "rotten wanted, %": countMark(
-          result[key].installed,
-          result[key].outdatedWanted
-        ),
-        "outdated latest": outdatedLatest,
-        "rotten latest, %": countMark(
-          result[key].installed,
-          result[key].outdatedLatest
-        ),
-        outdated,
-        "rotten, %": countMark(result[key].installed, result[key].outdated),
+    for (const t of this._dependenciesTypes) {
+      this._result[t] = {
+        installed: 0,
+        outdatedWanted: 0,
+        outdatedLatest: 0,
+        outdated: 0,
+        packages: {},
       };
-      acc.packages[key] = packages;
-      return acc;
-    },
-    { score: {}, packages: {} }
-  );
+    }
+  }
 
-  console.table(output.score);
+  _debug = (...args) => {
+    if (this._args.verbose === true) {
+      console.debug(...args);
+    }
+  };
 
-  if (parsedArgs.long === true) {
-    for (const key in output.packages) {
-      const list = output.packages[key];
+  _getResultsSummary = () => {
+    const rottenDepsPercentage = countMark(
+      this._result.all.installed,
+      this._result.all.outdated
+    );
+    const rottenWantedDepsPercentage = countMark(
+      this._result.all.installed,
+      this._result.all.outdatedWanted
+    );
+    const rottenLatestDepsPercentage = countMark(
+      this._result.all.installed,
+      this._result.all.outdatedLatest
+    );
+
+    return {
+      all: {
+        rottenDepsPercentage,
+        rottenWantedDepsPercentage,
+        rottenLatestDepsPercentage,
+      },
+    };
+  };
+
+  _tableOutput = () => {
+    const { name, version } = getPackageInfo();
+    const result = this._result;
+
+    console.log(`Rotten deps results for ${name}@${version}.`);
+    console.log(`Dependencies analyzed: ${result.all.installed}.`);
+    console.log(
+      `${result.all.outdated} (${countMark(
+        result.all.installed,
+        result.all.outdated
+      )}%) of installed packages are outdated.`
+    );
+
+    console.log(
+      `${result.all.outdatedWanted} (${countMark(
+        result.all.installed,
+        result.all.outdatedWanted
+      )}%) of installed packages have outdated wanted versions.`
+    );
+
+    console.log(
+      `${result.all.outdatedLatest} (${countMark(
+        result.all.installed,
+        result.all.outdatedLatest
+      )}%) of installed packages have outdated latest versions.`
+    );
+
+    const output = Object.keys(result).reduce(
+      (acc, key) => {
+        const {
+          installed,
+          outdatedWanted,
+          outdatedLatest,
+          outdated,
+          packages,
+        } = result[key];
+        acc.score[key] = {
+          installed,
+          "outdated wanted": outdatedWanted,
+          "rotten wanted, %": countMark(
+            result[key].installed,
+            result[key].outdatedWanted
+          ),
+          "outdated latest": outdatedLatest,
+          "rotten latest, %": countMark(
+            result[key].installed,
+            result[key].outdatedLatest
+          ),
+          outdated,
+          "rotten, %": countMark(result[key].installed, result[key].outdated),
+        };
+        acc.packages[key] = packages;
+        return acc;
+      },
+      { score: {}, packages: {} }
+    );
+
+    console.table(output.score);
+
+    // Print detailed output of outdated packages if --long flag is set
+    if (this._args.long === true) {
+      this._longOutput(output.packages);
+    }
+  };
+
+  _longOutput = (packages) => {
+    for (const key in packages) {
+      const list = packages[key];
 
       if (!list || Object.values(list).length === 0) {
         continue;
@@ -92,38 +147,17 @@ const formatOutput = () => {
       console.log(`\nList of outdated ${key}`);
       console.table(list);
     }
-  }
-};
+  };
 
-const subresult = {
-  installed: 0,
-  outdatedWanted: 0,
-  outdatedLatest: 0,
-  outdated: 0,
-};
+  pre = () => {
+    this._debug("CLI args:", this._args);
 
-const result = {
-  all: { ...subresult },
-};
-
-for (const t of dependenciesTypes) {
-  result[t] = { ...subresult, packages: {} };
-}
-
-function pre() {
-  debug("CLI args:", parsedArgs);
-
-  try {
     assert(fs.existsSync("package.json"), "pre: package.json not found");
 
-    debug("pre: OK");
-  } catch (e) {
-    console.error("pre: ERROR");
-  }
-}
+    this._debug("pre: OK");
+  };
 
-async function list() {
-  try {
+  list = async () => {
     const { stdout, stderr } = await exec(
       `${getNpmCommand()} ls --long --json`,
       {
@@ -132,33 +166,23 @@ async function list() {
     );
 
     if (stderr) {
-      console.error("npm ls: Error: ", stderr);
-      return;
+      throw new Error(stderr, { cause: "Rodeps->list->exec" });
     }
 
-    let json = {};
+    const json = safeConvertStdoutToJson(stdout);
 
-    try {
-      json = JSON.parse(stdout);
-    } catch {}
-
-    for (const t of dependenciesTypes) {
+    for (const t of this._dependenciesTypes) {
       const installed = Object.hasOwn(json, t) ? json[t] : {};
       const len = Object.keys(installed).length;
 
-      result.all.installed += len;
-      result[t].installed += len;
+      this._result.all.installed += len;
+      this._result[t].installed += len;
     }
 
-    debug("ls: OK");
-  } catch (e) {
-    console.error("ls: ERROR");
-    throw e;
-  }
-}
+    this._debug("ls: OK");
+  };
 
-async function outdated() {
-  try {
+  outdated = async () => {
     let stdout;
     try {
       ({ stdout } = await exec(`${getNpmCommand()} outdated --json --long`, {
@@ -166,80 +190,69 @@ async function outdated() {
       }));
     } catch (e) {
       if (!e.stdout) {
+        e.cause = "Rodeps->outdated§->exec";
         throw e;
       }
 
       stdout = e.stdout;
     }
 
-    let json = {};
-
-    try {
-      json = JSON.parse(stdout);
-    } catch {}
+    const json = safeConvertStdoutToJson(stdout);
 
     for (const key in json) {
       const d = json[key];
 
-      result.all.outdated++;
-
-      if (!result[d.type]) {
-        result[d.type] = { ...subresult, packages: {} };
+      if (!this._result[d.type]) {
+        console.warn(`Unknown dependency type: ${d.type}`);
+        continue;
       }
 
+      this._result.all.outdated++;
+
       if (d.current !== d.wanted) {
-        result.all.outdatedWanted++;
-        result[d.type].outdatedWanted++;
+        this._result.all.outdatedWanted++;
+        this._result[d.type].outdatedWanted++;
       }
 
       if (d.wanted !== d.latest) {
-        result.all.outdatedLatest++;
-        result[d.type].outdatedLatest++;
+        this._result.all.outdatedLatest++;
+        this._result[d.type].outdatedLatest++;
       }
 
-      result[d.type].outdated++;
-      result[d.type].packages[key] = {
+      this._result[d.type].outdated++;
+      this._result[d.type].packages[key] = {
         current: d.current,
         wanted: d.wanted,
         latest: d.latest,
       };
     }
 
-    debug("outdated: OK");
-  } catch (e) {
-    console.error("outdated: ERROR");
-    throw e;
-  }
-}
+    this._debug("outdated: OK");
+  };
 
-function post() {
-  if (parsedArgs.json === true) {
-    result.all.rottenDepsPercentage = countMark(
-      result.all.installed,
-      result.all.outdated
-    );
-    result.all.rottenWantedDepsPercentage = countMark(
-      result.all.installed,
-      result.all.outdatedWanted
-    );
-    result.all.rottenLatestDepsPercentage = countMark(
-      result.all.installed,
-      result.all.outdatedLatest
-    );
-    console.log(JSON.stringify(result, null, 2));
-    return;
-  }
+  post = () => {
+    if (this._args.json === true) {
+      const result = {
+        ...this._result,
+        summary: this._getResultsSummary(),
+      };
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      this._tableOutput();
+    }
 
-  formatOutput();
-
-  debug("post: OK");
+    this._debug("post: OK");
+  };
 }
 
 main = async () => {
-  pre();
-  await list();
-  await outdated();
-  post();
+  const rodeps = new Rodeps();
+
+  rodeps.pre();
+  await rodeps.list();
+  await rodeps.outdated();
+  rodeps.post();
 };
 
 module.exports = main;
+module.exports.Rodeps = Rodeps;
