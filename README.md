@@ -20,6 +20,7 @@ Rotten Dependencies package analyzes the dependencies tree in the `package.json`
   - [Outputs](#outputs)
     - [Default output](#default-output)
     - [JSON output](#json-output)
+  - [Limitations](#limitations)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -274,6 +275,16 @@ Example of JSON output:
  }
 }
 ```
+
+## Limitations
+
+Current design trade-offs and unsupported scenarios to avoid confusion:
+
+- Nested dependency tree depth is ignored. Only top-level direct dependencies in each group are counted when determining the total installed set; transitive dependencies are not included in counts or percentages.
+- Private registries / authenticated npm registries are not explicitly supported. If authentication is required and not present, commands may fail silently and produce empty or partial data (handled as zeroes). Explicit error handling for auth failures is not yet implemented.
+- `npm` only. Alternative package managers (Yarn, pnpm, Bun, etc.) are not detected or supported; the tool always invokes the npm CLI. Mixed or non-npm lockfiles will yield unreliable results.
+
+These constraints are tracked for future enhancement in the project improvement list / TODO.
 
 ## Contributing
 
