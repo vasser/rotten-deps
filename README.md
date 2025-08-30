@@ -16,6 +16,7 @@ Rotten Dependencies package analyzes the dependencies tree in the `package.json`
     - [Parsing output](#parsing-output)
     - [Github Actions](#github-actions)
     - [CircleCI](#circleci)
+    - [Bitbucket Pipelines](#bitbucket-pipelines)
     - [Using rodeps in NPM postinstall hook](#using-rodeps-in-npm-postinstall-hook)
   - [Outputs](#outputs)
     - [Default output](#default-output)
@@ -137,6 +138,31 @@ workflows:
   my-workflow:
     jobs:
       - rotten-deps
+```
+
+### Bitbucket Pipelines
+
+Bitbucket pipelines example. This workflow installs dependencies, analyzes the repo, and fails run if the percentage of outdated packages is greater or equal to the variable `RODEPS_THRESHOLD`:
+
+```yaml
+image: atlassian/default-image:5
+
+pipelines:
+  default:
+    - parallel:
+        - step:
+            name: Check outdated dependencies
+            script:
+              - npm ci --quiet --no-audit --no-fund
+              - |
+                SCORE=$(npx -y rodeps --json | jq '.all.rottenDepsPercentage')
+                RODEPS_THRESHOLD=${RODEPS_THRESHOLD:-0}
+                if [ "${SCORE%.*}" -ge "$RODEPS_THRESHOLD" ]; then
+                  echo "Failed: Outdated dependencies percentage - $SCORE breaches threshold - $RODEPS_THRESHOLD"
+                  exit 1
+                else
+                  echo "OK: Outdated dependencies percentage - $SCORE is within the threshold - $RODEPS_THRESHOLD"
+                fi
 ```
 
 ### Using rodeps in NPM postinstall hook
